@@ -7,17 +7,21 @@ import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.support.v7.app.ActionBarActivity;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
 import java.io.IOException;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
 
-public class MainActivity extends ActionBarActivity {
-
-    private HashMap<Long,String> mHashMap = new HashMap<Long, String>();
+public class MainActivity extends ActionBarActivity implements MediaPlayer.OnCompletionListener{
     private MediaPlayer mMediaPlayer = new MediaPlayer();
+    private int mCurrentCount = -1;
+    private List<SongDetails> mSongDetailsList;
+    private static int SONG_DURATION = 2 * 60 * 1000; // 2 minutes
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -25,6 +29,18 @@ public class MainActivity extends ActionBarActivity {
         setContentView(R.layout.activity_main);
         getAllMediaFiles();
         mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+        mMediaPlayer.setOnCompletionListener(this);
+
+        CountDownTimer start = new CountDownTimer(0, 0) {
+            @Override
+            public void onTick(long l) {
+
+            }
+            @Override
+            public void onFinish() {
+
+            }
+        }.start();
     }
 
 
@@ -49,6 +65,7 @@ public class MainActivity extends ActionBarActivity {
     }
 
     private void getAllMediaFiles(){
+        mSongDetailsList = new ArrayList<SongDetails>();
         ContentResolver contentResolver = getContentResolver();
         Uri uri = android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
         Cursor cursor = contentResolver.query(uri, null, null, null, null);
@@ -62,14 +79,22 @@ public class MainActivity extends ActionBarActivity {
             do {
                 long thisId = cursor.getLong(idColumn);
                 String thisTitle = cursor.getString(titleColumn);
-                mHashMap.put(thisId,thisTitle);
+                SongDetails songDetails = new SongDetails();
+                songDetails.setSongId(thisId);
+                songDetails.setSongTitle(thisTitle);
+                mSongDetailsList.add(songDetails);
             } while (cursor.moveToNext());
         }
+
+        playNextSong();
     }
 
-    private void playSongs(int index){
+    private void playNextSong(){
+        checkCount();
+        long index = mSongDetailsList.get(mCurrentCount).getSongId();
         Uri contentUri = ContentUris.withAppendedId(
                 android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, index);
+
         mMediaPlayer.reset();
         try{
             mMediaPlayer.setDataSource(getApplicationContext(), contentUri);
@@ -78,5 +103,25 @@ public class MainActivity extends ActionBarActivity {
             e.printStackTrace();
         }
         mMediaPlayer.start();
+
+        Log.d("TAG",mSongDetailsList.get(mCurrentCount).getSongTitle());
+        Log.d("TAG","Duration: "+mMediaPlayer.getDuration());
+
+        if(mMediaPlayer.getDuration() < 30* 1000){
+            playNextSong();
+        }
+    }
+
+    @Override
+    public void onCompletion(MediaPlayer mediaPlayer) {
+        Log.d("TAG","onCompletion");
+        playNextSong();
+    }
+
+    private void checkCount(){
+        mCurrentCount++;
+        if(mCurrentCount == mSongDetailsList.size()){
+            mCurrentCount = 0;
+        }
     }
 }
