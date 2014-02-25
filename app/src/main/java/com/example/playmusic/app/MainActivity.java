@@ -2,12 +2,15 @@ package com.example.playmusic.app;
 
 import android.content.ContentResolver;
 import android.content.ContentUris;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.preference.PreferenceManager;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.Menu;
@@ -22,27 +25,58 @@ public class MainActivity extends ActionBarActivity implements MediaPlayer.OnCom
     private int mCurrentCount = -1;
     private List<SongDetails> mSongDetailsList;
     private static int SONG_DURATION = 2 * 60 * 1000; // 2 minutes
-
+    private String TAG = this.getClass().getSimpleName();
+    private CountDownTimer mCountDownTimer;
+    private int mSongDuration;
+    private SharedPreferences.OnSharedPreferenceChangeListener mSharedPrefListener;
+    private SharedPreferences mSharedPreferences;
+    private MySharedPrefChangeListener mySharedPrefChangeListener = new MySharedPrefChangeListener();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        getAllMediaFiles();
+        mSongDuration = Integer.parseInt(getString(R.string.pref_default_time_out_value));
+        PreferenceManager.setDefaultValues(this, R.xml.pref_general, false);
+
         mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
         mMediaPlayer.setOnCompletionListener(this);
 
-        CountDownTimer start = new CountDownTimer(0, 0) {
+        mCountDownTimer = new CountDownTimer(mSongDuration, mSongDuration) {
             @Override
             public void onTick(long l) {
-
             }
+
             @Override
             public void onFinish() {
-
+                playNextSong();
             }
-        }.start();
+        };
+
+        mSharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+
+        getAllMediaFiles();
     }
 
+    private class MySharedPrefChangeListener implements SharedPreferences.OnSharedPreferenceChangeListener{
+
+        @Override
+        public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String s) {
+            mSongDuration = sharedPreferences.getInt(s,Integer.parseInt(getString(R.string.pref_default_time_out_value)));
+            Log.d(TAG,"OnSharedPreferenceChangeListener");
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        super.onPause();
+        mSharedPreferences.unregisterOnSharedPreferenceChangeListener(mySharedPrefChangeListener);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onResume();
+        mSharedPreferences.registerOnSharedPreferenceChangeListener(mySharedPrefChangeListener);
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -59,7 +93,7 @@ public class MainActivity extends ActionBarActivity implements MediaPlayer.OnCom
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
         if (id == R.id.action_settings) {
-            return true;
+            startActivity(new Intent(this,SettingsActivity.class));
         }
         return super.onOptionsItemSelected(item);
     }
@@ -91,6 +125,8 @@ public class MainActivity extends ActionBarActivity implements MediaPlayer.OnCom
 
     private void playNextSong(){
         checkCount();
+        mCountDownTimer.cancel();
+        mCountDownTimer.start();
         long index = mSongDetailsList.get(mCurrentCount).getSongId();
         Uri contentUri = ContentUris.withAppendedId(
                 android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, index);
@@ -124,4 +160,8 @@ public class MainActivity extends ActionBarActivity implements MediaPlayer.OnCom
             mCurrentCount = 0;
         }
     }
+
+
+
+
 }

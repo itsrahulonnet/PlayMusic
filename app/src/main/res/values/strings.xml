@@ -4,5 +4,19 @@
     <string name="app_name">PlayMusic</string>
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
+    <string name="time_out">Set Play Time Out</string>
+    <string name="time_out_default">3</string>
+    <array name="time_out_txt">
+        <item>1 minute</item>
+        <item>2 minutes</item>
+        <item>3 minutes</item>
+        <item>4 minutes</item>
+    </array>
+    <array name="time_out_values">
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+        <item>4</item>
+    </array>
 
 </resources>
