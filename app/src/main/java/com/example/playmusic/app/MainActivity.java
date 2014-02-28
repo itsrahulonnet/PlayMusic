@@ -27,15 +27,15 @@ public class MainActivity extends ActionBarActivity implements MediaPlayer.OnCom
     private static int SONG_DURATION = 2 * 60 * 1000; // 2 minutes
     private String TAG = this.getClass().getSimpleName();
     private CountDownTimer mCountDownTimer;
-    private int mSongDuration;
+    private long mSongDuration = -1;
     private SharedPreferences.OnSharedPreferenceChangeListener mSharedPrefListener;
     private SharedPreferences mSharedPreferences;
-    private MySharedPrefChangeListener mySharedPrefChangeListener = new MySharedPrefChangeListener();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        mSongDuration = Integer.parseInt(getString(R.string.pref_default_time_out_value));
+        mSongDuration = Long.parseLong(getString(R.string.pref_default_time_out_value));
         PreferenceManager.setDefaultValues(this, R.xml.pref_general, false);
 
         mMediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
@@ -53,29 +53,27 @@ public class MainActivity extends ActionBarActivity implements MediaPlayer.OnCom
         };
 
         mSharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        mSharedPrefListener = new SharedPreferences.OnSharedPreferenceChangeListener() {
+            @Override
+            public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String s) {
+                mSongDuration = Long.parseLong(sharedPreferences.getString(s,getString(R.string.pref_default_time_out_value)));
+            }
+        };
 
         getAllMediaFiles();
-    }
-
-    private class MySharedPrefChangeListener implements SharedPreferences.OnSharedPreferenceChangeListener{
-
-        @Override
-        public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String s) {
-            mSongDuration = sharedPreferences.getInt(s,Integer.parseInt(getString(R.string.pref_default_time_out_value)));
-            Log.d(TAG,"OnSharedPreferenceChangeListener");
-        }
-    }
-
-    @Override
-    protected void onStop() {
-        super.onPause();
-        mSharedPreferences.unregisterOnSharedPreferenceChangeListener(mySharedPrefChangeListener);
     }
 
     @Override
     protected void onStart() {
         super.onResume();
-        mSharedPreferences.registerOnSharedPreferenceChangeListener(mySharedPrefChangeListener);
+        Log.d(TAG,mSharedPreferences.getString(getString(R.string.pref_time_out_value),""));
+        mSharedPreferences.registerOnSharedPreferenceChangeListener(mSharedPrefListener);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mSharedPreferences.unregisterOnSharedPreferenceChangeListener(mSharedPrefListener);
     }
 
     @Override

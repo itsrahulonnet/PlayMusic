@@ -19,6 +19,7 @@
         <item>5 mins</item>
         <item>Never</item>
     </string-array>
+
     <string-array name="pref_time_out_values">
         <item>60000</item>
         <item>120000</item>
